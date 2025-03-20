@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Eye } from "lucide-react"
 import { useMobile } from "@/hooks/use-mobile"
+import { GameState } from "@/app/page"
 
 type Cell = {
   x: number
@@ -22,8 +23,6 @@ type Position = {
   x: number
   y: number
 }
-
-type GameState = "preparing" | "memorizing" | "playing" | "completed" | "waiting"
 
 type MazeGameProps = {
   size: number
@@ -459,6 +458,11 @@ export function MazeGame({
                 Memorize the maze!
               </p>
             )}
+            {gameState === "gameover" && (
+              <p className="text-2xl font-bold text-white bg-slate-900/70 px-6 py-3 rounded-lg shadow-lg text-red-400">
+                Game Over!
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -483,7 +487,7 @@ export function MazeGame({
                   variant="outline"
                   size="icon"
                   onClick={() => movePlayer("left")}
-                  className="bg-slate-800/80 border-purple-500/30 text-white hover:bg-purple-900/30 transition-colors duration-300 shadow-md"
+                  className="bg-slate-800/80 border-white-500/30 text-white hover:bg-purple-900/30 transition-colors duration-300 shadow-md"
                 >
                   <ArrowLeft />
                 </Button>
@@ -493,7 +497,7 @@ export function MazeGame({
                   size="icon"
                   disabled={hintUsed}
                   onClick={useHint}
-                  className={`bg-slate-800/80 border-purple-500/30 text-white transition-colors duration-300 shadow-md ${
+                  className={`bg-slate-800/80 border-white-500/30 text-white transition-colors duration-300 shadow-md ${
                     hintUsed ? "opacity-50" : "hover:bg-purple-900/30"
                   }`}
                 >
@@ -504,7 +508,7 @@ export function MazeGame({
                   variant="outline"
                   size="icon"
                   onClick={() => movePlayer("right")}
-                  className="bg-slate-800/80 border-purple-500/30 text-white hover:bg-purple-900/30 transition-colors duration-300 shadow-md"
+                  className="bg-slate-800/80 border-white-500/30 text-white hover:bg-purple-900/30 transition-colors duration-300 shadow-md"
                 >
                   <ArrowRight />
                 </Button>
@@ -514,7 +518,7 @@ export function MazeGame({
                   variant="outline"
                   size="icon"
                   onClick={() => movePlayer("down")}
-                  className="bg-slate-800/80 border-purple-500/30 text-white hover:bg-purple-900/30 transition-colors duration-300 shadow-md"
+                  className="bg-slate-800/80 border-white-500/30 text-white hover:bg-purple-900/30 transition-colors duration-300 shadow-md"
                 >
                   <ArrowDown />
                 </Button>
@@ -527,7 +531,7 @@ export function MazeGame({
                 variant="outline"
                 disabled={hintUsed}
                 onClick={useHint}
-                className={`flex items-center gap-2 bg-slate-800/80 border-purple-500/30 text-white shadow-md ${
+                className={`flex items-center gap-2 bg-slate-800/80 border-white-500/30 text-white shadow-md ${
                   hintUsed ? "opacity-50" : "hover:bg-purple-900/30 transition-colors duration-300"
                 }`}
               >
