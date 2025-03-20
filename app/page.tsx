@@ -14,35 +14,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Slider } from "@/components/ui/slider"
 import { MazeGame } from "@/components/maze-game"
-import { Info, Trophy, Settings } from "lucide-react"
+import { Info, Trophy, Settings, RefreshCw } from "lucide-react"
 
-
-// Add this right after imports
-const animationStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  @keyframes scaleIn {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
-  .animate-fadeIn {
-    animation: fadeIn 0.5s ease-out forwards;
-  }
-  .animate-slideUp {
-    animation: slideUp 0.5s ease-out forwards;
-  }
-  .animate-scaleIn {
-    animation: scaleIn 0.3s ease-out forwards;
-  }
-`
-
-export type GameState = "preparing" | "memorizing" | "playing" | "completed" | "waiting"
+export type GameState = "preparing" | "memorizing" | "playing" | "completed" | "waiting" | "gameover"
 
 export default function Home() {
   const [gameStarted, setGameStarted] = useState(false)
@@ -53,6 +27,7 @@ export default function Home() {
   const [showInstructions, setShowInstructions] = useState(false)
   const [visibilityTime, setVisibilityTime] = useState(5)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [showGameOver, setShowGameOver] = useState(false)
   const [gameState, setGameState] = useState<GameState>("preparing")
 
   const startGame = () => {
@@ -77,7 +52,19 @@ export default function Home() {
   }, [])
 
   const handleAttempt = useCallback(() => {
-    setAttempts((prev) => prev + 1)
+    const newAttempts = attempts + 1
+    setAttempts(newAttempts)
+
+    // Check if attempts exceed the limit
+    if (newAttempts >= 10) {
+      setGameState("gameover")
+      setShowGameOver(true)
+    }
+  }, [attempts])
+
+  const handlePlayAgain = useCallback(() => {
+    setShowGameOver(false)
+    startGame()
   }, [])
 
   const getMazeSize = useCallback(() => {
@@ -147,7 +134,7 @@ export default function Home() {
               </div>
               <div className="bg-slate-800/80 backdrop-blur-sm px-4 py-2 rounded-md border border-white-500/20 shadow-lg">
                 <p className="text-sm text-purple-300">Attempts</p>
-                <p className="text-xl font-bold text-white">{attempts}</p>
+                <p className="text-xl font-bold text-white">{attempts}/10</p>
               </div>
             </div>
 
@@ -226,6 +213,7 @@ export default function Home() {
               <li>Memorize the path from start (green) to finish (red).</li>
               <li>Use arrow keys or swipe to navigate through the maze.</li>
               <li>Avoid hitting walls - each collision counts as an attempt.</li>
+              <li>You have a maximum of 10 attempts per level.</li>
               <li>Complete levels to earn points and face harder challenges.</li>
               <li>Higher levels have larger mazes and less visibility time.</li>
             </ol>
@@ -264,6 +252,36 @@ export default function Home() {
               onClick={handleContinueToNextLevel}
             >
               Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Game Over Dialog */}
+      <AlertDialog open={showGameOver} onOpenChange={setShowGameOver}>
+        <AlertDialogContent className="bg-slate-900 border-purple-500/30 shadow-xl animate-scaleIn">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center text-white">
+              <RefreshCw className="mr-2 h-5 w-5 text-red-400" />
+              Game Over!
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <p className="text-slate-200">You've reached the maximum number of attempts (10).</p>
+            <p className="mt-2 text-slate-200">
+              Final score: <span className="text-green-400 font-bold">{score}</span>
+            </p>
+            <p className="mt-2 text-slate-200">
+              Level reached: <span className="text-purple-400 font-bold">{level}</span>
+            </p>
+            <p className="mt-4 text-purple-300">Would you like to play again?</p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300"
+              onClick={handlePlayAgain}
+            >
+              Play Again
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
