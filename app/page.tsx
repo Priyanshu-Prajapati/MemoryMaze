@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -14,12 +14,13 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Slider } from "@/components/ui/slider"
 import { MazeGame } from "@/components/maze-game"
-import { Info, Trophy, Settings, RefreshCw } from "lucide-react"
+import { Info, Trophy, Settings, RefreshCw, Lock, CheckCircle } from "lucide-react"
 
 export type GameState = "preparing" | "memorizing" | "playing" | "completed" | "waiting" | "gameover"
 
 export default function Home() {
   const [gameStarted, setGameStarted] = useState(false)
+  const [showLevelSelect, setShowLevelSelect] = useState(false)
   const [level, setLevel] = useState(1)
   const [score, setScore] = useState(0)
   const [attempts, setAttempts] = useState(0)
@@ -29,26 +30,79 @@ export default function Home() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [showGameOver, setShowGameOver] = useState(false)
   const [gameState, setGameState] = useState<GameState>("preparing")
+  const [highestLevelUnlocked, setHighestLevelUnlocked] = useState(1)
+  const [completedLevels, setCompletedLevels] = useState<number[]>([])
+  const [totalLevels] = useState(12) // Increased to 12 levels
+  const [pointsEarned, setPointsEarned] = useState(0)
 
-  const startGame = () => {
+  // Load game progress from localStorage
+  useEffect(() => {
+    const savedLevel = localStorage.getItem("highestLevelUnlocked")
+    if (savedLevel) {
+      setHighestLevelUnlocked(Number.parseInt(savedLevel))
+    }
+
+    const savedScore = localStorage.getItem("score")
+    if (savedScore) {
+      setScore(Number.parseInt(savedScore))
+    }
+
+    const savedCompletedLevels = localStorage.getItem("completedLevels")
+    if (savedCompletedLevels) {
+      setCompletedLevels(JSON.parse(savedCompletedLevels))
+    }
+  }, [])
+
+  // Save game progress to localStorage
+  useEffect(() => {
+    localStorage.setItem("highestLevelUnlocked", highestLevelUnlocked.toString())
+  }, [highestLevelUnlocked])
+
+  useEffect(() => {
+    localStorage.setItem("score", score.toString())
+  }, [score])
+
+  useEffect(() => {
+    localStorage.setItem("completedLevels", JSON.stringify(completedLevels))
+  }, [completedLevels])
+
+  const showLevelSelection = () => {
+    setShowLevelSelect(true)
+  }
+
+  const startGame = (selectedLevel: number) => {
     setGameStarted(true)
-    setScore(0)
+    setShowLevelSelect(false)
+    setLevel(selectedLevel)
     setAttempts(0)
-    setLevel(1)
     setGameState("preparing")
   }
 
   const handleLevelComplete = useCallback(() => {
-    setScore((prevScore) => prevScore + Math.max(100 - attempts * 10, 10) * level)
+    const isFirstTimeCompletion = !completedLevels.includes(level)
+    let newPoints = 0
+
+    // Only add to score if this is the first time completing this level
+    if (isFirstTimeCompletion) {
+      newPoints = Math.max(100 - attempts * 10, 10) * level
+      setScore((prevScore) => prevScore + newPoints)
+      setCompletedLevels((prev) => [...prev, level])
+    }
+
+    setPointsEarned(newPoints)
     setShowSuccess(true)
     setGameState("waiting")
-  }, [level, attempts])
+
+    // Unlock next level if this is the highest level completed
+    if (level >= highestLevelUnlocked) {
+      setHighestLevelUnlocked(level + 1)
+    }
+  }, [level, attempts, completedLevels, highestLevelUnlocked])
 
   const handleContinueToNextLevel = useCallback(() => {
-    setLevel((prevLevel) => prevLevel + 1)
-    setAttempts(0)
     setShowSuccess(false)
-    setGameState("preparing")
+    setGameStarted(false)
+    setShowLevelSelect(true)
   }, [])
 
   const handleAttempt = useCallback(() => {
@@ -64,20 +118,39 @@ export default function Home() {
 
   const handlePlayAgain = useCallback(() => {
     setShowGameOver(false)
-    startGame()
+    setShowLevelSelect(true)
+    setGameStarted(false)
+  }, [])
+
+  const handleExitGame = useCallback(() => {
+    setGameStarted(false)
+    setShowLevelSelect(false)
+  }, [])
+
+  const resetProgress = useCallback(() => {
+    setHighestLevelUnlocked(1)
+    setCompletedLevels([])
+    setScore(0)
+    localStorage.removeItem("highestLevelUnlocked")
+    localStorage.removeItem("completedLevels")
+    localStorage.removeItem("score")
+    setShowSettings(false)
   }, [])
 
   const getMazeSize = useCallback(() => {
     // Start with a small maze and increase size with level
     const baseSize = 5
-    const additionalSize = Math.min(Math.floor(level / 2), 5)
+    const additionalSize = Math.min(Math.floor(level / 2), 6)
     return baseSize + additionalSize
   }, [level])
 
   const getVisibilityTime = useCallback(() => {
     // Decrease visibility time as levels progress
-    return Math.max(visibilityTime - (level - 1) * 0.5, 1.5)
+    return Math.max(visibilityTime - (level - 1) * 0.4, 1.5)
   }, [level, visibilityTime])
+
+  // Generate array of level numbers
+  const levelNumbers = Array.from({ length: totalLevels }, (_, i) => i + 1)
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 text-white">
@@ -86,7 +159,7 @@ export default function Home() {
           Memory Maze
         </h1>
 
-        {!gameStarted ? (
+        {!gameStarted && !showLevelSelect ? (
           <Card className="w-full p-6 bg-slate-900/80 border-white-500/30 backdrop-blur-sm shadow-xl animate-slideUp">
             <div className="flex flex-col items-center gap-4">
               <p className="text-center text-slate-200 mb-4">
@@ -95,7 +168,7 @@ export default function Home() {
               <Button
                 size="lg"
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg shadow-purple-700/30"
-                onClick={startGame}
+                onClick={showLevelSelection}
               >
                 Start Game
               </Button>
@@ -119,6 +192,55 @@ export default function Home() {
                   Settings
                 </Button>
               </div>
+            </div>
+          </Card>
+        ) : showLevelSelect ? (
+          <Card className="w-full p-6 bg-slate-900/80 border-white-500/30 backdrop-blur-sm shadow-xl animate-slideUp">
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex justify-between items-center w-full">
+                <h2 className="text-2xl font-bold text-white">Select Level</h2>
+                <div className="bg-slate-800/80 backdrop-blur-sm px-3 py-1 rounded-md border border-white-500/20 shadow-lg">
+                  <p className="text-sm text-purple-300">Score</p>
+                  <p className="text-lg font-bold text-white text-center">{score}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 w-full">
+                {levelNumbers.map((levelNum) => (
+                  <Button
+                    key={levelNum}
+                    variant={levelNum <= highestLevelUnlocked ? "default" : "outline"}
+                    disabled={levelNum > highestLevelUnlocked}
+                    className={`h-16 relative ${
+                      levelNum <= highestLevelUnlocked
+                        ? levelNum === highestLevelUnlocked && highestLevelUnlocked > 1
+                          ? "bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 border-2 border-yellow-300"
+                          : completedLevels.includes(levelNum)
+                            ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                            : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        : "bg-slate-800/50 border-white/20 text-slate-400"
+                    }`}
+                    onClick={() => levelNum <= highestLevelUnlocked && startGame(levelNum)}
+                  >
+                    <span className="text-lg font-bold">{levelNum}</span>
+                    {levelNum <= highestLevelUnlocked ? (
+                      completedLevels.includes(levelNum) && (
+                        <CheckCircle className="absolute bottom-1 right-1 h-4 w-4 text-white" />
+                      )
+                    ) : (
+                      <Lock className="absolute bottom-1 right-1 h-4 w-4" />
+                    )}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                className="mt-4 border-purple-500/50 text-slate-600 hover:text-white hover:bg-purple-900/30 transition-colors duration-300"
+                onClick={() => setShowLevelSelect(false)}
+              >
+                Back to Home
+              </Button>
             </div>
           </Card>
         ) : (
@@ -154,7 +276,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 className="flex-1 border-purple-500/50 text-slate-600 hover:bg-purple-900/30 transition-colors duration-300"
-                onClick={() => setGameStarted(false)}
+                onClick={handleExitGame}
               >
                 Exit Game
               </Button>
@@ -192,6 +314,15 @@ export default function Home() {
                 className="py-2"
               />
             </div>
+            <div className="mt-6 pt-4 border-t border-slate-700">
+              <p className="text-red-400 mb-2">Reset Game Progress</p>
+              <p className="text-sm text-slate-400 mb-4">
+                This will reset all your progress, including unlocked levels and score.
+              </p>
+              <Button variant="destructive" className="w-full" onClick={resetProgress}>
+                Reset Progress
+              </Button>
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogAction className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300">
@@ -209,12 +340,15 @@ export default function Home() {
           </AlertDialogHeader>
           <div className="py-2">
             <ol className="list-decimal pl-5 space-y-2 text-slate-200">
+              <li>Select a level to play (only unlocked levels are available).</li>
               <li>A maze will appear for a few seconds, then disappear.</li>
               <li>Memorize the path from start (green) to finish (red).</li>
               <li>Use arrow keys or swipe to navigate through the maze.</li>
               <li>Avoid hitting walls - each collision counts as an attempt.</li>
               <li>You have a maximum of 10 attempts per level.</li>
-              <li>Complete levels to earn points and face harder challenges.</li>
+              <li>Complete levels to earn points and unlock new levels.</li>
+              <li>Points are only earned the first time you complete a level.</li>
+              <li>After completing a level, you can choose which unlocked level to play next.</li>
               <li>Higher levels have larger mazes and less visibility time.</li>
             </ol>
           </div>
@@ -237,21 +371,31 @@ export default function Home() {
           </AlertDialogHeader>
           <div className="py-2">
             <p className="text-slate-200">You completed level {level}!</p>
-            <p className="mt-2 text-slate-200">
-              Points earned:{" "}
-              <span className="text-green-400 font-bold">{Math.max(100 - attempts * 10, 10) * level}</span>
-            </p>
+
+            {pointsEarned > 0 ? (
+              <p className="mt-2 text-slate-200">
+                Points earned: <span className="text-green-400 font-bold">{pointsEarned}</span>
+              </p>
+            ) : completedLevels.includes(level) ? (
+              <p className="mt-2 text-slate-200">No points earned (level already completed)</p>
+            ) : null}
+
             <p className="mt-2 text-slate-200">
               Total score: <span className="text-green-400 font-bold">{score}</span>
             </p>
-            <p className="mt-4 text-purple-300">Get ready for level {level + 1}...</p>
+
+            {level < totalLevels && level >= highestLevelUnlocked - 1 ? (
+              <p className="mt-4 text-purple-300">Level {level + 1} is now unlocked!</p>
+            ) : level === totalLevels ? (
+              <p className="mt-4 text-purple-300">Congratulations! You've completed all levels!</p>
+            ) : null}
           </div>
           <AlertDialogFooter>
             <AlertDialogAction
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300"
               onClick={handleContinueToNextLevel}
             >
-              Continue
+              Next level
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
