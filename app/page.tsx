@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Slider } from "@/components/ui/slider"
 import { MazeGame } from "@/components/maze-game"
-import { Info, Trophy, Settings, RefreshCw, Lock, CheckCircle } from "lucide-react"
+import { Info, Trophy, Settings, RefreshCw, Lock, CheckCircle, AlertTriangle } from "lucide-react"
 
 export type GameState = "preparing" | "memorizing" | "playing" | "completed" | "waiting" | "gameover"
 
@@ -34,6 +34,8 @@ export default function Home() {
   const [completedLevels, setCompletedLevels] = useState<number[]>([])
   const [totalLevels] = useState(12) // Increased to 12 levels
   const [pointsEarned, setPointsEarned] = useState(0)
+  const [isFirstAttempt, setIsFirstAttempt] = useState(true)
+  const [showCollision, setShowCollision] = useState(false)
 
   // Load game progress from localStorage
   useEffect(() => {
@@ -65,6 +67,21 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("completedLevels", JSON.stringify(completedLevels))
   }, [completedLevels])
+
+  // Check if this is a first attempt at this level
+  useEffect(() => {
+    setIsFirstAttempt(!completedLevels.includes(level))
+  }, [level, completedLevels])
+
+  // Reset collision effect after 1 second
+  useEffect(() => {
+    if (showCollision) {
+      const timer = setTimeout(() => {
+        setShowCollision(false)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [showCollision])
 
   const showLevelSelection = () => {
     setShowLevelSelect(true)
@@ -108,6 +125,7 @@ export default function Home() {
   const handleAttempt = useCallback(() => {
     const newAttempts = attempts + 1
     setAttempts(newAttempts)
+    setShowCollision(true) // Show collision effect
 
     // Check if attempts exceed the limit
     if (newAttempts >= 10) {
@@ -118,9 +136,17 @@ export default function Home() {
 
   const handlePlayAgain = useCallback(() => {
     setShowGameOver(false)
-    setShowLevelSelect(true)
-    setGameStarted(false)
-  }, [])
+
+    // If this was a first attempt at an uncompleted level, reset the game
+    if (isFirstAttempt) {
+      resetProgress()
+      startGame(1)
+    } else {
+      // Otherwise, just go back to level selection
+      setShowLevelSelect(true)
+      setGameStarted(false)
+    }
+  }, [isFirstAttempt])
 
   const handleExitGame = useCallback(() => {
     setGameStarted(false)
@@ -239,7 +265,7 @@ export default function Home() {
                 className="mt-4 border-purple-500/50 text-slate-600 hover:text-white hover:bg-purple-900/30 transition-colors duration-300"
                 onClick={() => setShowLevelSelect(false)}
               >
-                Back to Home
+                Back to Menu
               </Button>
             </div>
           </Card>
@@ -254,9 +280,19 @@ export default function Home() {
                 <p className="text-sm text-purple-300">Score</p>
                 <p className="text-xl font-bold text-white">{score}</p>
               </div>
-              <div className="bg-slate-800/80 backdrop-blur-sm px-4 py-2 rounded-md border border-white-500/20 shadow-lg">
+              <div
+                className={`bg-slate-800/80 backdrop-blur-sm px-4 py-2 rounded-md border shadow-lg transition-all duration-300 ${
+                  showCollision ? "border-red-500 shadow-red-500/30" : "border-white-500/20"
+                }`}
+              >
                 <p className="text-sm text-purple-300">Attempts</p>
-                <p className="text-xl font-bold text-white">{attempts}/10</p>
+                <p
+                  className={`text-xl font-bold transition-colors duration-300 ${
+                    showCollision ? "text-red-400" : "text-white"
+                  }`}
+                >
+                  {attempts}/10
+                </p>
               </div>
             </div>
 
@@ -348,7 +384,7 @@ export default function Home() {
               <li>You have a maximum of 10 attempts per level.</li>
               <li>Complete levels to earn points and unlock new levels.</li>
               <li>Points are only earned the first time you complete a level.</li>
-              <li>After completing a level, you can choose which unlocked level to play next.</li>
+              <li>If you run out of attempts on your first try of a level, all progress will be reset.</li>
               <li>Higher levels have larger mazes and less visibility time.</li>
             </ol>
           </div>
@@ -395,7 +431,7 @@ export default function Home() {
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300"
               onClick={handleContinueToNextLevel}
             >
-              Next level
+              Next Level
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -412,20 +448,42 @@ export default function Home() {
           </AlertDialogHeader>
           <div className="py-2">
             <p className="text-slate-200">You've reached the maximum number of attempts (10).</p>
-            <p className="mt-2 text-slate-200">
-              Final score: <span className="text-green-400 font-bold">{score}</span>
-            </p>
-            <p className="mt-2 text-slate-200">
-              Level reached: <span className="text-purple-400 font-bold">{level}</span>
-            </p>
-            <p className="mt-4 text-purple-300">Would you like to play again?</p>
+
+            {isFirstAttempt ? (
+              <>
+                <div className="mt-4 p-3 bg-red-950/50 border border-red-500/30 rounded-md">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-red-400 mt-0.5" />
+                    <div>
+                      <p className="text-red-200 font-medium">First attempt failure</p>
+                      <p className="text-sm text-red-300 mt-1">
+                        Since this was your first attempt at level {level}, all progress will be reset.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-4 text-slate-300">You'll start again from level 1 with a score of 0.</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-slate-200">
+                  Score: <span className="text-green-400 font-bold">{score}</span>
+                </p>
+                <p className="mt-2 text-slate-200">
+                  Level reached: <span className="text-purple-400 font-bold">{level}</span>
+                </p>
+                <p className="mt-4 text-slate-300">
+                  Since you've already completed this level before, your progress is safe.
+                </p>
+              </>
+            )}
           </div>
           <AlertDialogFooter>
             <AlertDialogAction
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-300"
               onClick={handlePlayAgain}
             >
-              Play Again
+              {isFirstAttempt ? "Restart Game" : "Back to Level Selection"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
