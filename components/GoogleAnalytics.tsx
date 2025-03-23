@@ -3,6 +3,7 @@
 import Script from "next/script";
 
 export default function GoogleAnalytics() {
+  if (typeof window === "undefined") return null;
   return (
     <>
       <Script
