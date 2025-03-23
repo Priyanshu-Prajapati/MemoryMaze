@@ -2,6 +2,8 @@
 
 import Script from "next/script";
 
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || "G-EPETNFWVQT";
+
 export default function GoogleAnalytics() {
   if (typeof window === "undefined") return null;
   return (
