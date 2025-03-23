@@ -311,14 +311,14 @@ export default function Home() {
             <div className="flex gap-2 w-full mt-4 animate-fadeIn">
               <Button
                 variant="outline"
-                className="flex-1 border-purple-500/50 text-slate-600 hover:bg-purple-900/30 transition-colors duration-300"
+                className="flex-1 border-purple-500/50 text-slate-600 hover:text-white hover:bg-purple-900/30 transition-colors duration-300"
                 onClick={handleExitGame}
               >
                 Exit Game
               </Button>
               <Button
                 variant="outline"
-                className="flex-1 border-purple-500/50 text-slate-600 hover:bg-purple-900/30 transition-colors duration-300"
+                className="flex-1 border-purple-500/50 text-slate-600 hover:text-white hover:bg-purple-900/30 transition-colors duration-300"
                 onClick={() => setShowSettings(true)}
               >
                 <Settings className="mr-2 h-4 w-4" />
