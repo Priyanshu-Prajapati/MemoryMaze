@@ -454,7 +454,7 @@ export function MazeGame({
               </p>
             )}
             {gameState === "memorizing" && (
-              <p className="text-2xl font-bold text-white opacity-25 bg-slate-900/70 px-6 py-3 rounded-lg shadow-lg animate-pulse">
+              <p className="text-2xl font-bold text-white bg-slate-900/70 px-6 py-3 rounded-lg shadow-lg animate-pulse opacity-10">
                 Memorize the maze!
               </p>
             )}
