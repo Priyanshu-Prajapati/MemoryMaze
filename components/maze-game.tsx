@@ -5,7 +5,6 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Eye } from "lucide-react"
 import { useMobile } from "@/hooks/use-mobile"
-import { GameState } from "@/app/page"
 
 type Cell = {
   x: number
@@ -23,6 +22,8 @@ type Position = {
   x: number
   y: number
 }
+
+type GameState = "preparing" | "memorizing" | "playing" | "completed" | "gameover" | "waiting"
 
 type MazeGameProps = {
   size: number
@@ -352,12 +353,15 @@ export function MazeGame({
   return (
     <div className="w-full flex flex-col items-center gap-4">
       {gameState === "memorizing" && (
-        <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-          <div
-            className="bg-purple-500 h-full transition-all duration-100 ease-linear"
-            style={{ width: `${(timeLeft / visibilityTime) * 100}%` }}
-          ></div>
-        </div>
+        <>
+          <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+            <div
+              className="bg-purple-500 h-full transition-all duration-100 ease-linear"
+              style={{ width: `${(timeLeft / visibilityTime) * 100}%` }}
+            ></div>
+          </div>
+          <p className="text-2xl font-bold text-white text-center mb-2 animate-pulse">Memorize the maze!</p>
+        </>
       )}
 
       <div
@@ -451,11 +455,6 @@ export function MazeGame({
             {gameState === "preparing" && (
               <p className="text-2xl font-bold text-white bg-slate-900/70 px-6 py-3 rounded-lg shadow-lg">
                 Level {level}
-              </p>
-            )}
-            {gameState === "memorizing" && (
-              <p className="text-2xl font-bold text-white bg-slate-900/70 px-6 py-3 rounded-lg shadow-lg animate-pulse opacity-10">
-                Memorize the maze!
               </p>
             )}
             {gameState === "gameover" && (
